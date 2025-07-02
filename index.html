@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Call via Twilio WebRTC</title>
+    <script src="https://media.twiliocdn.com/sdk/js/client/v1.13/twilio.min.js"></script>
+    <style>
+      body {
+        font-family: sans-serif;
+        text-align: center;
+        padding: 50px;
+      }
+      button {
+        padding: 10px 20px;
+        margin: 10px;
+        font-size: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>WebRTC Call to Twilio</h1>
+    <p>Click below to call your Twilio number for free from browser</p>
+
+    <button onclick="call()">📞 Call</button>
+    <button onclick="hangup()">🔴 Hang Up</button>
+
+    <p id="status">Status: Loading...</p>
+
+    <script>
+      const TOKEN_URL =
+        "https://callvio-backend-242251286144.asia-south1.run.app/get-token?identity=browserUser"; // Replace if needed
+      const TO_NUMBER = "+1XXXXXXXXXX"; // <-- Replace with your Twilio number
+
+      let device;
+
+      fetch(TOKEN_URL)
+        .then((res) => res.json())
+        .then((data) => {
+          device = new Twilio.Device(data.token, {
+            codecPreferences: ["opus", "pcmu"],
+            fakeLocalDTMF: true,
+            enableRingingState: true,
+          });
+
+          device.on("ready", () => updateStatus("Device Ready"));
+          device.on("error", (error) =>
+            updateStatus("Error: " + error.message)
+          );
+          device.on("connect", (conn) => updateStatus("Call Connected"));
+          device.on("disconnect", (conn) => updateStatus("Call Ended"));
+        });
+
+      function call() {
+        if (device) {
+          device.connect({ To: TO_NUMBER });
+          updateStatus("Calling...");
+        }
+      }
+
+      function hangup() {
+        if (device) {
+          device.disconnectAll();
+          updateStatus("Call Ended");
+        }
+      }
+
+      function updateStatus(msg) {
+        document.getElementById("status").innerText = "Status: " + msg;
+        console.log(msg);
+      }
+    </script>
+  </body>
+</html>
