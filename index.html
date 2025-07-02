@@ -4,27 +4,269 @@
     <meta charset="UTF-8" />
     <title>Call via Twilio WebRTC</title>
     <script src="https://media.twiliocdn.com/sdk/js/client/v1.13/twilio.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <style>
-      body {
-        font-family: sans-serif;
-        text-align: center;
-        padding: 50px;
+      :root {
+        --color-gray-50: #f9fafb;
+        --color-gray-100: #f3f4f6;
+        --color-gray-300: #d1d5db;
+        --color-gray-400: #9ca3af;
+        --color-gray-500: #6b7280;
+        --color-gray-600: #4b5563;
+        --color-gray-900: #111827;
+        --color-green-500: #22c55e;
+        --color-green-600: #16a34a;
+        --color-green-700: #15803d;
+        --color-red-600: #dc2626;
+        --color-red-700: #b91c1c;
+        --color-yellow-500: #eab308;
+        --color-yellow-600: #ca8a04;
+        --color-blue-50: #eff6ff;
+        --color-blue-600: #2563eb;
+        --color-blue-800: #1e40af;
+        --color-blue-900: #1e3a8a;
+        --color-orange-600: #ea580c;
       }
-      button {
-        padding: 10px 20px;
-        margin: 10px;
-        font-size: 18px;
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        margin: 0;
+        min-height: 100vh;
+        background: linear-gradient(
+          to bottom right,
+          var(--color-gray-50),
+          var(--color-gray-100)
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        box-sizing: border-box;
+      }
+
+      .card {
+        background-color: white;
+        border-radius: 1rem;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+          0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        padding: 2rem;
+        width: 100%;
+        max-width: 28rem;
+        box-sizing: border-box;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .header h1 {
+        font-size: 1.875rem;
+        font-weight: bold;
+        color: var(--color-gray-900);
+        margin: 0 0 0.75rem 0;
+      }
+
+      .header p {
+        color: var(--color-gray-600);
+        font-size: 0.875rem;
+        line-height: 1.5;
+        margin: 0;
+      }
+
+      .call-controls {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin-bottom: 2rem;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        color: white;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 1rem;
+      }
+
+      .btn:hover:not(:disabled) {
+        transform: scale(1.05);
+      }
+      .btn:active:not(:disabled) {
+        transform: scale(0.95);
+      }
+      .btn:disabled {
+        background-color: var(--color-gray-400);
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .btn-call {
+        background-color: var(--color-green-600);
+      }
+      .btn-call:hover:not(:disabled) {
+        background-color: var(--color-green-700);
+      }
+
+      .btn-hangup {
+        background-color: var(--color-red-600);
+      }
+      .btn-hangup:hover:not(:disabled) {
+        background-color: var(--color-red-700);
+      }
+
+      .status-container {
+        text-align: center;
+      }
+
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 9999px;
+        background-color: var(--color-gray-50);
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: color 0.3s;
+      }
+
+      .status-badge.status-initializing {
+        color: var(--color-gray-600);
+      }
+      .status-badge.status-ready {
+        color: var(--color-green-600);
+      }
+      .status-badge.status-connecting {
+        color: var(--color-yellow-600);
+      }
+      .status-badge.status-connected {
+        color: var(--color-blue-600);
+      }
+      .status-badge.status-disconnecting {
+        color: var(--color-orange-600);
+      }
+      .status-badge.status-error {
+        color: var(--color-red-600);
+      }
+
+      #status-icon-container .lucide {
+        width: 1rem;
+        height: 1rem;
+      }
+
+      .connection-quality-container {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--color-gray-100);
+      }
+
+      .connection-quality-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.875rem;
+        color: var(--color-gray-500);
+      }
+
+      .quality-bars {
+        display: flex;
+        gap: 0.25rem;
+      }
+
+      .quality-bar {
+        width: 0.5rem;
+        height: 1rem;
+        border-radius: 0.125rem;
+        background-color: var(--color-gray-300);
+        transition: background-color 0.3s;
+      }
+
+      .instructions {
+        margin-top: 1.5rem;
+        padding: 1rem;
+        background-color: var(--color-blue-50);
+        border-radius: 0.5rem;
+        text-align: left;
+      }
+
+      .instructions h3 {
+        font-weight: 500;
+        color: var(--color-blue-900);
+        margin: 0 0 0.5rem 0;
+      }
+
+      .instructions ul {
+        font-size: 0.875rem;
+        color: var(--color-blue-800);
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        space-y: 0.25rem;
+      }
+
+      .instructions ul li {
+        padding-bottom: 0.25rem;
       }
     </style>
   </head>
   <body>
-    <h1>WebRTC Call to Twilio</h1>
-    <p>Click below to call your Twilio number for free from browser</p>
+    <div class="card">
+      <div class="header">
+        <h1>WebRTC Call to Twilio</h1>
+        <p>Click below to call your Twilio number for free from browser</p>
+      </div>
 
-    <button onclick="call()">📞 Call</button>
-    <button onclick="hangup()">🔴 Hang Up</button>
+      <div class="call-controls">
+        <button id="call-button" class="btn btn-call">
+          <i data-lucide="phone"></i>
+          <span>Call</span>
+        </button>
+        <button id="hangup-button" class="btn btn-hangup">
+          <i data-lucide="phone-off"></i>
+          <span>Hang Up</span>
+        </button>
+      </div>
 
-    <p id="status">Status: Loading...</p>
+      <div class="status-container">
+        <div id="status-indicator" class="status-badge status-initializing">
+          <span id="status-icon-container">
+            <i data-lucide="loader"></i>
+          </span>
+          <span id="status-text">Status: Initializing...</span>
+        </div>
+      </div>
+
+      <div class="connection-quality-container">
+        <div class="connection-quality-inner">
+          <span>Connection Quality</span>
+          <div id="quality-bars" class="quality-bars">
+            <div class="quality-bar"></div>
+            <div class="quality-bar"></div>
+            <div class="quality-bar"></div>
+            <div class="quality-bar"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="instructions">
+        <h3>Getting Started:</h3>
+        <ul>
+          <li>• Ensure microphone permissions are enabled</li>
+          <li>• Click "Call" to initiate the connection</li>
+          <li>• Use "Hang Up" to end the call</li>
+          <li>• Check your network connection for best quality</li>
+        </ul>
+      </div>
+    </div>
 
     <script>
       const TOKEN_URL =
@@ -32,42 +274,169 @@
       const TO_NUMBER = "+13252464243"; // <-- Replace with your Twilio number
 
       let device;
+      let callStatus = "initializing"; // initializing, ready, connecting, connected, disconnecting, error
+      let callDuration = 0;
+      let timerRef = null;
 
-      fetch(TOKEN_URL)
-        .then((res) => res.json())
-        .then((data) => {
-          device = new Twilio.Device(data.token, {
-            codecPreferences: ["opus", "pcmu"],
-            fakeLocalDTMF: true,
-            enableRingingState: true,
-          });
+      // DOM Elements
+      const callButton = document.getElementById("call-button");
+      const hangupButton = document.getElementById("hangup-button");
+      const statusIndicator = document.getElementById("status-indicator");
+      const statusText = document.getElementById("status-text");
+      const statusIconContainer = document.getElementById(
+        "status-icon-container"
+      );
+      const qualityBars = document.querySelectorAll(
+        "#quality-bars .quality-bar"
+      );
 
-          device.on("ready", () => updateStatus("Device Ready"));
-          device.on("error", (error) =>
-            updateStatus("Error: " + error.message)
-          );
-          device.on("connect", (conn) => updateStatus("Call Connected"));
-          device.on("disconnect", (conn) => updateStatus("Call Ended"));
+      function formatDuration(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${String(mins).padStart(2, "0")}:${String(secs).padStart(
+          2,
+          "0"
+        )}`;
+      }
+
+      function startTimer() {
+        if (timerRef) clearInterval(timerRef);
+        callDuration = 0;
+        timerRef = setInterval(() => {
+          callDuration++;
+          updateUI();
+        }, 1000);
+      }
+
+      function stopTimer() {
+        if (timerRef) {
+          clearInterval(timerRef);
+          timerRef = null;
+        }
+        callDuration = 0;
+      }
+
+      function updateUI(statusMessage) {
+        let currentStatusText = "";
+        let iconName = "loader";
+
+        // Update button states
+        const isCallActive =
+          callStatus === "connecting" || callStatus === "connected";
+        callButton.disabled = isCallActive;
+        hangupButton.disabled = !isCallActive;
+
+        // Update status badge class for color
+        statusIndicator.className = "status-badge status-" + callStatus;
+
+        // Update quality bars
+        qualityBars.forEach((bar, index) => {
+          let barColor = "var(--color-gray-300)";
+          if (callStatus === "connected") {
+            barColor = "var(--color-green-500)";
+          } else if (callStatus === "connecting" && index < 2) {
+            barColor = "var(--color-yellow-500)";
+          }
+          bar.style.backgroundColor = barColor;
         });
 
-      function call() {
-        if (device) {
-          device.connect({ To: TO_NUMBER });
-          updateStatus("Calling...");
+        switch (callStatus) {
+          case "initializing":
+            currentStatusText = "Initializing...";
+            iconName = "loader";
+            break;
+          case "ready":
+            currentStatusText = statusMessage || "Device Ready";
+            iconName = "wifi";
+            break;
+          case "connecting":
+            currentStatusText = statusMessage || "Connecting...";
+            iconName = "loader";
+            break;
+          case "connected":
+            currentStatusText = `Connected - ${formatDuration(callDuration)}`;
+            iconName = "wifi";
+            break;
+          case "disconnecting":
+            currentStatusText = "Disconnecting...";
+            iconName = "wifi-off";
+            stopTimer();
+            break;
+          case "error":
+            currentStatusText = statusMessage || "Connection Error";
+            iconName = "wifi-off";
+            stopTimer();
+            break;
         }
+        statusText.innerText = "Status: " + currentStatusText;
+
+        // Update icon
+        statusIconContainer.innerHTML = `<i data-lucide="${iconName}"></i>`;
+        lucide.createIcons();
       }
 
-      function hangup() {
-        if (device) {
-          device.disconnectAll();
-          updateStatus("Call Ended");
+      function setCallStatus(newStatus, message) {
+        console.log(
+          `Status changed to: ${newStatus}` + (message ? ` (${message})` : "")
+        );
+        callStatus = newStatus;
+
+        if (newStatus === "connected") {
+          startTimer();
+        } else if (newStatus !== "connecting") {
+          stopTimer();
         }
+
+        updateUI(message);
       }
 
-      function updateStatus(msg) {
-        document.getElementById("status").innerText = "Status: " + msg;
-        console.log(msg);
-      }
+      // Initialize
+      document.addEventListener("DOMContentLoaded", () => {
+        setCallStatus("initializing");
+
+        fetch(TOKEN_URL)
+          .then((res) => {
+            if (!res.ok) throw new Error("Token response not ok");
+            return res.json();
+          })
+          .then((data) => {
+            device = new Twilio.Device(data.token, {
+              codecPreferences: ["opus", "pcmu"],
+              fakeLocalDTMF: true,
+              enableRingingState: true,
+            });
+
+            device.on("ready", () => setCallStatus("ready"));
+            device.on("error", (error) =>
+              setCallStatus("error", "Error: " + error.message)
+            );
+            device.on("connect", () => setCallStatus("connected"));
+            device.on("disconnect", () => setCallStatus("ready", "Call Ended"));
+            device.on("ringing", (isIncoming) => {
+              if (!isIncoming) {
+                setCallStatus("connecting", "Ringing...");
+              }
+            });
+          })
+          .catch((err) => {
+            setCallStatus("error", "Failed to get token");
+            console.error(err);
+          });
+
+        callButton.addEventListener("click", () => {
+          if (device) {
+            setCallStatus("connecting");
+            device.connect({ To: TO_NUMBER });
+          }
+        });
+
+        hangupButton.addEventListener("click", () => {
+          if (device) {
+            setCallStatus("disconnecting");
+            device.disconnectAll();
+          }
+        });
+      });
     </script>
   </body>
 </html>
