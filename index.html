@@ -26,6 +26,7 @@
         --color-blue-800: #1e40af;
         --color-blue-900: #1e3a8a;
         --color-orange-600: #ea580c;
+        --color-blue-700: #1d4ed8;
       }
 
       body {
@@ -75,6 +76,40 @@
         margin: 0;
       }
 
+      .settings-container {
+        margin-bottom: 2rem;
+        padding-bottom: 2rem;
+        border-bottom: 1px solid var(--color-gray-100);
+      }
+
+      .input-group {
+        margin-bottom: 1rem;
+        text-align: left;
+      }
+
+      .input-group label {
+        display: block;
+        font-weight: 500;
+        color: var(--color-gray-900);
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+      }
+
+      .input-group input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--color-gray-300);
+        border-radius: 0.5rem;
+        font-size: 1rem;
+        box-sizing: border-box;
+      }
+
+      .input-group input:focus {
+        outline: none;
+        border-color: var(--color-blue-600);
+        box-shadow: 0 0 0 2px var(--color-blue-50);
+      }
+
       .call-controls {
         display: flex;
         justify-content: center;
@@ -121,6 +156,13 @@
       }
       .btn-hangup:hover:not(:disabled) {
         background-color: var(--color-red-700);
+      }
+
+      .btn-primary {
+        background-color: var(--color-blue-600);
+      }
+      .btn-primary:hover:not(:disabled) {
+        background-color: var(--color-blue-700);
       }
 
       .status-container {
@@ -225,6 +267,29 @@
         <p>Click below to call your Twilio number for free from browser</p>
       </div>
 
+      <div class="settings-container">
+        <div class="input-group">
+          <label for="token-url-input">Token URL</label>
+          <input
+            type="url"
+            id="token-url-input"
+            placeholder="https://your-token-server.com/get-token"
+          />
+        </div>
+        <div class="input-group">
+          <label for="to-number-input">Phone Number to Call</label>
+          <input
+            type="text"
+            id="to-number-input"
+            placeholder="e.g. +13252464243"
+          />
+        </div>
+        <button id="initialize-button" class="btn btn-primary">
+          <i data-lucide="settings-2"></i>
+          <span>Initialize Device</span>
+        </button>
+      </div>
+
       <div class="call-controls">
         <button id="call-button" class="btn btn-call">
           <i data-lucide="phone"></i>
@@ -269,16 +334,15 @@
     </div>
 
     <script>
-      const TOKEN_URL =
-        "https://callvio-backend-242251286144.asia-south1.run.app/get-token?identity=caller1"; // Replace if needed
-      const TO_NUMBER = "+13252464243"; // <-- Replace with your Twilio number
-
       let device;
-      let callStatus = "initializing"; // initializing, ready, connecting, connected, disconnecting, error
+      let callStatus = "uninitialized"; // uninitialized, initializing, ready, connecting, connected, disconnecting, error
       let callDuration = 0;
       let timerRef = null;
 
       // DOM Elements
+      const initializeButton = document.getElementById("initialize-button");
+      const tokenUrlInput = document.getElementById("token-url-input");
+      const toNumberInput = document.getElementById("to-number-input");
       const callButton = document.getElementById("call-button");
       const hangupButton = document.getElementById("hangup-button");
       const statusIndicator = document.getElementById("status-indicator");
@@ -321,10 +385,16 @@
         let iconName = "loader";
 
         // Update button states
-        const isCallActive =
-          callStatus === "connecting" || callStatus === "connected";
-        callButton.disabled = isCallActive;
-        hangupButton.disabled = !isCallActive;
+        initializeButton.disabled =
+          callStatus === "initializing" ||
+          callStatus === "ready" ||
+          callStatus === "connecting" ||
+          callStatus === "connected" ||
+          callStatus === "disconnecting";
+        callButton.disabled = callStatus !== "ready";
+        hangupButton.disabled = !(
+          callStatus === "connecting" || callStatus === "connected"
+        );
 
         // Update status badge class for color
         statusIndicator.className = "status-badge status-" + callStatus;
@@ -341,6 +411,10 @@
         });
 
         switch (callStatus) {
+          case "uninitialized":
+            currentStatusText = statusMessage || "Configuration Required";
+            iconName = "settings";
+            break;
           case "initializing":
             currentStatusText = "Initializing...";
             iconName = "loader";
@@ -390,11 +464,21 @@
         updateUI(message);
       }
 
-      // Initialize
-      document.addEventListener("DOMContentLoaded", () => {
+      function initializeDevice() {
+        const tokenUrl = tokenUrlInput.value.trim();
+        const toNumber = toNumberInput.value.trim();
+
+        if (!tokenUrl || !toNumber) {
+          alert("Please provide both a Token URL and a Twilio Number.");
+          return;
+        }
+
+        localStorage.setItem("twilioTokenUrl", tokenUrl);
+        localStorage.setItem("twilioToNumber", toNumber);
+
         setCallStatus("initializing");
 
-        fetch(TOKEN_URL)
+        fetch(tokenUrl)
           .then((res) => {
             if (!res.ok) throw new Error("Token response not ok");
             return res.json();
@@ -422,11 +506,33 @@
             setCallStatus("error", "Failed to get token");
             console.error(err);
           });
+      }
+
+      // Initialize
+      document.addEventListener("DOMContentLoaded", () => {
+        const savedTokenUrl = localStorage.getItem("twilioTokenUrl");
+        const savedToNumber = localStorage.getItem("twilioToNumber");
+
+        if (savedTokenUrl) {
+          tokenUrlInput.value = savedTokenUrl;
+        }
+        if (savedToNumber) {
+          toNumberInput.value = savedToNumber;
+        }
+
+        setCallStatus("uninitialized");
+
+        initializeButton.addEventListener("click", initializeDevice);
 
         callButton.addEventListener("click", () => {
           if (device) {
+            const toNumber = toNumberInput.value.trim();
+            if (!toNumber) {
+              alert("Please provide a Twilio Number to call.");
+              return;
+            }
             setCallStatus("connecting");
-            device.connect({ To: TO_NUMBER });
+            device.connect({ To: toNumber });
           }
         });
 
