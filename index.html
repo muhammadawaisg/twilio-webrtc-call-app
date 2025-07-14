@@ -476,14 +476,16 @@
       function initializeDevice() {
         const tokenUrl = tokenUrlInput.value.trim();
         const toNumber = toNumberInput.value.trim();
+        const fromNumber = fromNumberInput.value.trim();
 
-        if (!tokenUrl || !toNumber) {
-          alert("Please provide both a Token URL and a Twilio Number.");
+        if (!tokenUrl || !toNumber || !fromNumber) {
+          alert("Please provide Token URL, To Number, and From Number.");
           return;
         }
 
         localStorage.setItem("twilioTokenUrl", tokenUrl);
         localStorage.setItem("twilioToNumber", toNumber);
+        localStorage.setItem("twilioFromNumber", fromNumber);
 
         setCallStatus("initializing");
 
@@ -521,12 +523,16 @@
       document.addEventListener("DOMContentLoaded", () => {
         const savedTokenUrl = localStorage.getItem("twilioTokenUrl");
         const savedToNumber = localStorage.getItem("twilioToNumber");
+        const savedFromNumber = localStorage.getItem("twilioFromNumber");
 
         if (savedTokenUrl) {
           tokenUrlInput.value = savedTokenUrl;
         }
         if (savedToNumber) {
           toNumberInput.value = savedToNumber;
+        }
+        if (savedFromNumber) {
+          fromNumberInput.value = savedFromNumber;
         }
 
         setCallStatus("uninitialized");
@@ -550,6 +556,21 @@
                 From: fromNumber
               }
             });
+
+            // Call the backend URL
+            const backendUrl = `https://callvio-backend-dev-242251286144.asia-south1.run.app/incoming-call?From=${encodeURIComponent(fromNumber)}&To=${encodeURIComponent(toNumber)}`;
+
+            fetch(backendUrl)
+              .then((response) => {
+                console.log("Backend response:", response);
+                return response.text();
+              })
+              .then((data) => {
+                console.log("Response data:", data);
+              })
+              .catch((error) => {
+                console.error("Error calling backend:", error);
+              });
           }
         });
 
