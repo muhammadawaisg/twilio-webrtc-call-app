@@ -544,7 +544,12 @@
             }
 
             setCallStatus("connecting");
-            device.connect({ To: toNumber, From: fromNumber });
+            device.connect({
+              params: {
+                To: toNumber,
+                From: fromNumber
+              }
+            });
           }
         });
 
