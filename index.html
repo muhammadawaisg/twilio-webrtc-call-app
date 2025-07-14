@@ -284,6 +284,14 @@
             placeholder="e.g. +13252464243"
           />
         </div>
+        <div class="input-group">
+          <label for="from-number-input">From Number</label>
+          <input
+            type="text"
+            id="from-number-input"
+            placeholder="e.g. +923164203806"
+          />
+        </div>
         <button id="initialize-button" class="btn btn-primary">
           <i data-lucide="settings-2"></i>
           <span>Initialize Device</span>
@@ -343,6 +351,7 @@
       const initializeButton = document.getElementById("initialize-button");
       const tokenUrlInput = document.getElementById("token-url-input");
       const toNumberInput = document.getElementById("to-number-input");
+      const fromNumberInput = document.getElementById("from-number-input");
       const callButton = document.getElementById("call-button");
       const hangupButton = document.getElementById("hangup-button");
       const statusIndicator = document.getElementById("status-indicator");
@@ -527,12 +536,15 @@
         callButton.addEventListener("click", () => {
           if (device) {
             const toNumber = toNumberInput.value.trim();
-            if (!toNumber) {
-              alert("Please provide a Twilio Number to call.");
+            const fromNumber = fromNumberInput.value.trim();
+
+            if (!toNumber || !fromNumber) {
+              alert("Please provide both 'From' and 'To' numbers.");
               return;
             }
+
             setCallStatus("connecting");
-            device.connect({ To: toNumber });
+            device.connect({ To: toNumber, From: fromNumber });
           }
         });
 
