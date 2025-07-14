@@ -491,10 +491,15 @@
 
         fetch(tokenUrl)
           .then((res) => {
-            if (!res.ok) throw new Error("Token response not ok");
+            if (!res.ok) {
+              throw new Error(`Failed to fetch token: ${res.status} ${res.statusText}`);
+            }
             return res.json();
           })
           .then((data) => {
+            if (!data.token) {
+              throw new Error("Token not found in response.");
+            }
             device = new Twilio.Device(data.token, {
               codecPreferences: ["opus", "pcmu"],
               fakeLocalDTMF: true,
@@ -502,20 +507,14 @@
             });
 
             device.on("ready", () => setCallStatus("ready"));
-            device.on("error", (error) =>
-              setCallStatus("error", "Error: " + error.message)
-            );
-            device.on("connect", () => setCallStatus("connected"));
-            device.on("disconnect", () => setCallStatus("ready", "Call Ended"));
-            device.on("ringing", (isIncoming) => {
-              if (!isIncoming) {
-                setCallStatus("connecting", "Ringing...");
-              }
+            device.on("error", (error) => {
+              console.error("Twilio Device Error:", error);
+              setCallStatus("error", error.message);
             });
           })
           .catch((err) => {
-            setCallStatus("error", "Failed to get token");
-            console.error(err);
+            console.error("Initialization Error:", err);
+            setCallStatus("error", err.message);
           });
       }
 
@@ -544,33 +543,31 @@
           const fromNumber = fromNumberInput.value.trim();
 
           if (!toNumber || !fromNumber) {
-            alert("Please provide both 'From' and 'To' numbers.");
+            alert("Please provide To Number and From Number.");
+            return;
+          }
+
+          if (!device) {
+            alert("Device not initialized.");
             return;
           }
 
           console.log("Calling Twilio with parameters:", {
-            To: toNumber,
             From: fromNumber,
+            To: toNumber,
           });
 
-          // Simulate Twilio Device connect
-          fetch("https://callvio-backend-dev-242251286144.asia-south1.run.app/incoming-call", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
-            body: `From=${encodeURIComponent(fromNumber)}&To=${encodeURIComponent(toNumber)}`,
-          })
-            .then((response) => {
-              console.log("Backend response:", response);
-              return response.text();
-            })
-            .then((data) => {
-              console.log("Response data:", data);
-            })
-            .catch((error) => {
-              console.error("Error calling backend:", error);
-            });
+          device.connect({
+            From: fromNumber,
+            To: toNumber,
+          });
+
+          device.on("connect", () => setCallStatus("connected"));
+          device.on("disconnect", () => setCallStatus("ready"));
+          device.on("error", (error) => {
+            console.error("Call Error:", error);
+            setCallStatus("error", error.message);
+          });
         });
 
         hangupButton.addEventListener("click", () => {
