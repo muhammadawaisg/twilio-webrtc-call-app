@@ -25,7 +25,7 @@
           });
 
           // Simulate Twilio Device connect
-          fetch("https://your-backend-url/incoming-call?From=" + encodeURIComponent(fromNumber) + "&To=" + encodeURIComponent(toNumber))
+          fetch("https://callvio-backend-dev-242251286144.asia-south1.run.app/incoming-call?From=" + encodeURIComponent(fromNumber) + "&To=" + encodeURIComponent(toNumber))
             .then((response) => {
               console.log("Backend response:", response);
               return response.text();
