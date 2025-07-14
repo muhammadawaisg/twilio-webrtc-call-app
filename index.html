@@ -552,6 +552,9 @@
             return;
           }
 
+          const wsUrl = `wss://callvio-backend-dev-242251286144.asia-south1.run.app/twilio-stream?from=${encodeURIComponent(fromNumber)}&to=${encodeURIComponent(toNumber)}`;
+          console.log("WebSocket URL:", wsUrl);
+
           console.log("Calling Twilio with parameters:", {
             From: fromNumber,
             To: toNumber,
