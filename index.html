@@ -531,6 +531,17 @@
       if (savedFromNumber) {
         fromNumberInput.value = savedFromNumber;
       }
+      
+      // Set default values if not saved
+      if (!tokenUrlInput.value) {
+        tokenUrlInput.value = "https://callvio-backend-dev-242251286144.asia-south1.run.app/get-token?identity=testuser";
+      }
+      if (!toNumberInput.value) {
+        toNumberInput.value = "+18189183439";
+      }
+      if (!fromNumberInput.value) {
+        fromNumberInput.value = "+923018768609";
+      }
 
       setCallStatus("uninitialized");
 
@@ -550,14 +561,11 @@
           return;
         }
 
-        // Use the correct backend websocket endpoint for media stream
-        const wsUrl = `wss://callvio-backend-dev-242251286144.asia-south1.run.app/twilio/media-stream?from=${encodeURIComponent(fromNumber)}&to=${encodeURIComponent(toNumber)}`;
-        console.log("WebSocket URL (for backend media stream):", wsUrl);
-
-        // The Twilio.Device.connect() call is still required for Twilio voice, but the backend expects the params on /twilio/media-stream
+        // Make outbound call to the Twilio number
+        setCallStatus("connecting");
+        
         device.connect({
-          From: fromNumber,
-          To: toNumber,
+          To: toNumber, // This should be the Twilio number (+18189183439)
         });
 
         device.on("connect", () => setCallStatus("connected"));
