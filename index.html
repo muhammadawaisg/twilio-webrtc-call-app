@@ -279,8 +279,8 @@
 
     <div class="settings-container">
       <div class="input-group">
-        <label for="token-url-input">Token URL</label>
-        <input type="url" id="token-url-input" placeholder="https://your-token-server.com/get-token" />
+        <label for="token-input">Twilio Token</label>
+        <input type="text" id="token-input" placeholder="Enter your Twilio token" />
       </div>
       <div class="input-group">
         <label for="to-number-input">Phone Number to Call</label>
@@ -347,7 +347,7 @@
 
     // DOM Elements
     const initializeButton = document.getElementById("initialize-button");
-    const tokenUrlInput = document.getElementById("token-url-input");
+    const tokenInput = document.getElementById("token-input");
     const toNumberInput = document.getElementById("to-number-input");
     const fromNumberInput = document.getElementById("from-number-input");
     const callButton = document.getElementById("call-button");
@@ -472,58 +472,47 @@
     }
 
     function initializeDevice() {
-      const tokenUrl = tokenUrlInput.value.trim();
+      const token = tokenInput.value.trim();
       const toNumber = toNumberInput.value.trim();
       const fromNumber = fromNumberInput.value.trim();
 
-      if (!tokenUrl || !toNumber || !fromNumber) {
-        alert("Please provide Token URL, To Number, and From Number.");
+      if (!token || !toNumber || !fromNumber) {
+        alert("Please provide Token, To Number, and From Number.");
         return;
       }
 
-      localStorage.setItem("twilioTokenUrl", tokenUrl);
+      localStorage.setItem("twilioToken", token);
       localStorage.setItem("twilioToNumber", toNumber);
       localStorage.setItem("twilioFromNumber", fromNumber);
 
       setCallStatus("initializing");
 
-      fetch(tokenUrl)
-        .then((res) => {
-          if (!res.ok) {
-            throw new Error(`Failed to fetch token: ${res.status} ${res.statusText}`);
-          }
-          return res.json();
-        })
-        .then((data) => {
-          if (!data.token) {
-            throw new Error("Token not found in response.");
-          }
-          device = new Twilio.Device(data.token, {
-            codecPreferences: ["opus", "pcmu"],
-            fakeLocalDTMF: true,
-            enableRingingState: true,
-          });
-
-          device.on("ready", () => setCallStatus("ready"));
-          device.on("error", (error) => {
-            console.error("Twilio Device Error:", error);
-            setCallStatus("error", error.message);
-          });
-        })
-        .catch((err) => {
-          console.error("Initialization Error:", err);
-          setCallStatus("error", err.message);
+      try {
+        device = new Twilio.Device(token, {
+          codecPreferences: ["opus", "pcmu"],
+          fakeLocalDTMF: true,
+          enableRingingState: true,
         });
+
+        device.on("ready", () => setCallStatus("ready"));
+        device.on("error", (error) => {
+          console.error("Twilio Device Error:", error);
+          setCallStatus("error", error.message);
+        });
+      } catch (err) {
+        console.error("Initialization Error:", err);
+        setCallStatus("error", err.message);
+      }
     }
 
     // Initialize
     document.addEventListener("DOMContentLoaded", () => {
-      const savedTokenUrl = localStorage.getItem("twilioTokenUrl");
+      const savedToken = localStorage.getItem("twilioToken");
       const savedToNumber = localStorage.getItem("twilioToNumber");
       const savedFromNumber = localStorage.getItem("twilioFromNumber");
 
-      if (savedTokenUrl) {
-        tokenUrlInput.value = savedTokenUrl;
+      if (savedToken) {
+        tokenInput.value = savedToken;
       }
       if (savedToNumber) {
         toNumberInput.value = savedToNumber;
@@ -533,9 +522,6 @@
       }
       
       // Set default values if not saved
-      if (!tokenUrlInput.value) {
-        tokenUrlInput.value = "https://callvio-backend-dev-242251286144.asia-south1.run.app/get-token?identity=testuser";
-      }
       if (!toNumberInput.value) {
         toNumberInput.value = "+18189183439";
       }
