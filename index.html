@@ -523,10 +523,10 @@
       
       // Set default values if not saved
       if (!toNumberInput.value) {
-        toNumberInput.value = "+18189183439";
+        toNumberInput.value = "+13136311821";
       }
       if (!fromNumberInput.value) {
-        fromNumberInput.value = "+923018768609";
+        fromNumberInput.value = "+923164203806";
       }
 
       setCallStatus("uninitialized");
@@ -551,7 +551,7 @@
         setCallStatus("connecting");
         
         device.connect({
-          To: toNumber, // This should be the Twilio number (+18189183439)
+          To: toNumber, // This should be the Twilio number (+13136311821)
         });
 
         device.on("connect", () => setCallStatus("connected"));
