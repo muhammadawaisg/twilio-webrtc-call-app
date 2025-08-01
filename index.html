@@ -261,11 +261,48 @@
       list-style: none;
       padding: 0;
       margin: 0;
-      space-y: 0.25rem;
     }
 
     .instructions ul li {
       padding-bottom: 0.25rem;
+    }
+
+    /* Tab Styles */
+    .tab-navigation {
+      display: flex;
+      margin-bottom: 1rem;
+      border-bottom: 2px solid var(--color-gray-100);
+    }
+
+    .tab-button {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: none;
+      background: transparent;
+      color: var(--color-gray-600);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-bottom: 2px solid transparent;
+    }
+
+    .tab-button:hover {
+      color: var(--color-blue-600);
+      background-color: var(--color-blue-50);
+    }
+
+    .tab-button.active {
+      color: var(--color-blue-600);
+      border-bottom-color: var(--color-blue-600);
+      background-color: var(--color-blue-50);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
     }
   </style>
 </head>
@@ -273,31 +310,52 @@
 <body>
   <div class="card">
     <div class="header">
-      <h1>Standalone WebRTC Call</h1>
-      <p>Simple and reliable calling to your Twilio number</p>
+      <h1>Twilio WebRTC Call App</h1>
+      <p>Choose your method: Use our server or bring your own token</p>
     </div>
 
     <div class="settings-container">
-      <div class="input-group">
-        <label for="account-sid-input">Twilio Account SID</label>
-        <input type="text" id="account-sid-input" placeholder="e.g. ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" />
+      <!-- Tab Navigation -->
+      <div class="tab-navigation">
+        <button id="tab-server" class="tab-button active">Use Our Server</button>
+        <button id="tab-manual" class="tab-button">Manual Token</button>
       </div>
-      <div class="input-group">
-        <label for="auth-token-input">Twilio Auth Token</label>
-        <input type="password" id="auth-token-input" placeholder="Enter your Twilio Auth Token" />
+
+      <!-- Tab 1: Server Token -->
+      <div id="server-tab" class="tab-content active">
+        <div class="input-group">
+          <label for="to-number-input-server">Phone Number to Call (Your Twilio Number)</label>
+          <input type="text" id="to-number-input-server" placeholder="e.g. +13136311821" />
+        </div>
+        <div class="input-group">
+          <label for="from-number-input-server">Your Personal Number</label>
+          <input type="text" id="from-number-input-server" placeholder="e.g. +923164203806" />
+        </div>
+        <button id="initialize-button-server" class="btn btn-primary">
+          <i data-lucide="settings-2"></i>
+          <span>Get Token & Initialize</span>
+        </button>
       </div>
-      <div class="input-group">
-        <label for="to-number-input">Phone Number to Call (Your Twilio Number)</label>
-        <input type="text" id="to-number-input" placeholder="e.g. +13136311821" />
+
+      <!-- Tab 2: Manual Token -->
+      <div id="manual-tab" class="tab-content">
+        <div class="input-group">
+          <label for="token-input-manual">Your Twilio Access Token</label>
+          <input type="password" id="token-input-manual" placeholder="Enter your Twilio access token" />
+        </div>
+        <div class="input-group">
+          <label for="to-number-input-manual">Phone Number to Call (Your Twilio Number)</label>
+          <input type="text" id="to-number-input-manual" placeholder="e.g. +13136311821" />
+        </div>
+        <div class="input-group">
+          <label for="from-number-input-manual">Your Personal Number</label>
+          <input type="text" id="from-number-input-manual" placeholder="e.g. +923164203806" />
+        </div>
+        <button id="initialize-button-manual" class="btn btn-primary">
+          <i data-lucide="settings-2"></i>
+          <span>Initialize with Token</span>
+        </button>
       </div>
-      <div class="input-group">
-        <label for="from-number-input">Your Personal Number</label>
-        <input type="text" id="from-number-input" placeholder="e.g. +923164203806" />
-      </div>
-      <button id="initialize-button" class="btn btn-primary">
-        <i data-lucide="settings-2"></i>
-        <span>Initialize Device</span>
-      </button>
     </div>
 
     <div class="call-controls">
@@ -335,12 +393,9 @@
     <div class="instructions">
       <h3>How to use:</h3>
       <ul>
-        <li>• Get your Twilio credentials from <a href="https://console.twilio.com" target="_blank">Twilio Console</a>
-        </li>
-        <li>• Enter Account SID and Auth Token above</li>
-        <li>• Set your Twilio number and personal number</li>
-        <li>• Click "Initialize Device" first</li>
-        <li>• Then click "Call" to connect to your AI assistant</li>
+        <li>• <strong>Use Our Server:</strong> Add Twilio credentials to .env file, enter phone numbers</li>
+        <li>• <strong>Manual Token:</strong> Enter your own access token + phone numbers</li>
+        <li>• Click "Initialize" first, then "Call" to connect</li>
         <li>• Use "Hang Up" to end the call</li>
       </ul>
     </div>
@@ -353,18 +408,35 @@
     let timerRef = null;
     let currentConnection = null;
 
-    // DOM Elements
-    const initializeButton = document.getElementById("initialize-button");
-    const accountSidInput = document.getElementById("account-sid-input");
-    const authTokenInput = document.getElementById("auth-token-input");
-    const toNumberInput = document.getElementById("to-number-input");
-    const fromNumberInput = document.getElementById("from-number-input");
+    // DOM Elements - Tabs
+    const tabServer = document.getElementById("tab-server");
+    const tabManual = document.getElementById("tab-manual");
+    const serverTab = document.getElementById("server-tab");
+    const manualTab = document.getElementById("manual-tab");
+
+    // DOM Elements - Server Tab
+    const toNumberInputServer = document.getElementById("to-number-input-server");
+    const fromNumberInputServer = document.getElementById("from-number-input-server");
+    const initializeButtonServer = document.getElementById("initialize-button-server");
+
+    // DOM Elements - Manual Tab
+    const tokenInputManual = document.getElementById("token-input-manual");
+    const toNumberInputManual = document.getElementById("to-number-input-manual");
+    const fromNumberInputManual = document.getElementById("from-number-input-manual");
+    const initializeButtonManual = document.getElementById("initialize-button-manual");
+
+    // DOM Elements - Common
     const callButton = document.getElementById("call-button");
     const hangupButton = document.getElementById("hangup-button");
     const statusIndicator = document.getElementById("status-indicator");
     const statusText = document.getElementById("status-text");
     const statusIconContainer = document.getElementById("status-icon-container");
     const qualityBars = document.querySelectorAll("#quality-bars .quality-bar");
+
+    // State variables
+    let currentMode = 'server'; // 'server' or 'manual'
+    let currentToNumber = '';
+    let currentFromNumber = '';
 
     function formatDuration(seconds) {
       const mins = Math.floor(seconds / 60);
@@ -393,12 +465,20 @@
       let currentStatusText = "";
       let iconName = "loader";
 
-      // Update button states
-      initializeButton.disabled = callStatus === "initializing" ||
-        callStatus === "ready" ||
-        callStatus === "connecting" ||
-        callStatus === "connected" ||
-        callStatus === "disconnecting";
+      // Update button states based on current mode
+      if (currentMode === 'server') {
+        initializeButtonServer.disabled = callStatus === "initializing" ||
+          callStatus === "ready" ||
+          callStatus === "connecting" ||
+          callStatus === "connected" ||
+          callStatus === "disconnecting";
+      } else {
+        initializeButtonManual.disabled = callStatus === "initializing" ||
+          callStatus === "ready" ||
+          callStatus === "connecting" ||
+          callStatus === "connected" ||
+          callStatus === "disconnecting";
+      }
       callButton.disabled = callStatus !== "ready";
       hangupButton.disabled = !(callStatus === "connecting" || callStatus === "connected");
 
@@ -468,7 +548,31 @@
       updateUI(message);
     }
 
-    async function getAccessToken(accountSid, authToken) {
+    // Tab switching functionality
+    function switchTab(mode) {
+      currentMode = mode;
+
+      // Update tab buttons
+      if (mode === 'server') {
+        tabServer.classList.add('active');
+        tabManual.classList.remove('active');
+        serverTab.classList.add('active');
+        manualTab.classList.remove('active');
+      } else {
+        tabManual.classList.add('active');
+        tabServer.classList.remove('active');
+        manualTab.classList.add('active');
+        serverTab.classList.remove('active');
+      }
+
+      // Reset device state when switching tabs
+      if (device) {
+        device = null;
+        setCallStatus("uninitialized");
+      }
+    }
+
+    async function getAccessToken() {
       try {
         console.log('Requesting access token from server...');
         const response = await fetch('/token', {
@@ -477,9 +581,7 @@
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            identity: 'web-client-' + Date.now(),
-            accountSid: accountSid,
-            authToken: authToken
+            identity: 'web-client-' + Date.now()
           })
         });
 
@@ -500,78 +602,111 @@
       }
     }
 
-    async function initializeDevice() {
-      const accountSid = accountSidInput.value.trim();
-      const authToken = authTokenInput.value.trim();
-      const toNumber = toNumberInput.value.trim();
-      const fromNumber = fromNumberInput.value.trim();
+    // Initialize device using server token
+    async function initializeDeviceServer() {
+      const toNumber = toNumberInputServer.value.trim();
+      const fromNumber = fromNumberInputServer.value.trim();
 
-      if (!accountSid || !authToken || !toNumber || !fromNumber) {
-        alert("Please provide all required fields: Account SID, Auth Token, and both phone numbers.");
+      if (!toNumber || !fromNumber) {
+        alert("Please provide both phone numbers.");
         return;
       }
 
-      // Save to localStorage (except sensitive auth token)
-      localStorage.setItem("twilioAccountSid", accountSid);
+      currentToNumber = toNumber;
+      currentFromNumber = fromNumber;
+
+      // Save to localStorage
       localStorage.setItem("twilioToNumber", toNumber);
       localStorage.setItem("twilioFromNumber", fromNumber);
 
       setCallStatus("initializing");
 
       try {
-        // Get access token from our backend with user credentials
-        console.log('Getting access token...');
-        const token = await getAccessToken(accountSid, authToken);
+        // Get access token from our backend
+        console.log('Getting access token from server...');
+        const token = await getAccessToken();
         console.log('Token received, creating Twilio Device...');
 
-        device = new Twilio.Device(token, {
-          codecPreferences: ["opus", "pcmu"],
-          fakeLocalDTMF: true,
-          enableRingingState: true,
-        });
-
-        console.log('Twilio Device created, setting up event listeners...');
-
-        device.on("ready", () => {
-          console.log("✅ Device is ready for calls!");
-          setCallStatus("ready");
-        });
-
-        device.on("error", (error) => {
-          console.error("❌ Device error:", error);
-          setCallStatus("error", error.message);
-        });
-
-        device.on("connect", (connection) => {
-          console.log("📞 Call connected");
-          currentConnection = connection;
-          setCallStatus("connected");
-        });
-
-        device.on("disconnect", () => {
-          console.log("📴 Call ended");
-          currentConnection = null;
-          setCallStatus("ready", "Call ended");
-        });
-
-        device.on("incoming", (connection) => {
-          console.log("📞 Incoming call:", connection);
-        });
-
-        console.log('Event listeners set up. Waiting for device ready event...');
+        await initializeTwilioDevice(token);
 
       } catch (error) {
-        console.error("❌ Initialization error:", error);
+        console.error("❌ Server initialization error:", error);
         setCallStatus("error", "Failed to initialize: " + error.message);
       }
     }
 
-    function makeCall() {
-      const toNumber = toNumberInput.value.trim();
-      const fromNumber = fromNumberInput.value.trim();
+    // Initialize device using manual token
+    async function initializeDeviceManual() {
+      const token = tokenInputManual.value.trim();
+      const toNumber = toNumberInputManual.value.trim();
+      const fromNumber = fromNumberInputManual.value.trim();
 
-      if (!toNumber || !fromNumber) {
-        alert("Please provide both phone numbers.");
+      if (!token || !toNumber || !fromNumber) {
+        alert("Please provide access token and both phone numbers.");
+        return;
+      }
+
+      currentToNumber = toNumber;
+      currentFromNumber = fromNumber;
+
+      // Save to localStorage (not the token for security)
+      localStorage.setItem("twilioToNumber", toNumber);
+      localStorage.setItem("twilioFromNumber", fromNumber);
+
+      setCallStatus("initializing");
+
+      try {
+        console.log('Using provided access token...');
+        await initializeTwilioDevice(token);
+
+      } catch (error) {
+        console.error("❌ Manual initialization error:", error);
+        setCallStatus("error", "Failed to initialize: " + error.message);
+      }
+    }
+
+    // Common Twilio Device initialization
+    async function initializeTwilioDevice(token) {
+      device = new Twilio.Device(token, {
+        codecPreferences: ["opus", "pcmu"],
+        fakeLocalDTMF: true,
+        enableRingingState: true,
+      });
+
+      console.log('Twilio Device created, setting up event listeners...');
+
+      device.on("ready", () => {
+        console.log("✅ Device is ready for calls!");
+        setCallStatus("ready");
+      });
+
+      device.on("error", (error) => {
+        console.error("❌ Device error:", error);
+        setCallStatus("error", error.message);
+      });
+
+      device.on("connect", (connection) => {
+        console.log("📞 Call connected");
+        currentConnection = connection;
+        setCallStatus("connected");
+      });
+
+      device.on("disconnect", () => {
+        console.log("📴 Call ended");
+        currentConnection = null;
+        setCallStatus("ready", "Call ended");
+      });
+
+      device.on("incoming", (connection) => {
+        console.log("📞 Incoming call:", connection);
+      });
+
+      console.log('Event listeners set up. Waiting for device ready event...');
+    }
+
+    function makeCall() {
+      if (!currentToNumber || !currentFromNumber) {
+        alert("Please initialize device first with phone numbers.");
         return;
       }
 
@@ -583,15 +718,19 @@
       setCallStatus("connecting");
 
       try {
-        // Make the call using Twilio Device with custom parameters (full approach)
-        console.log('Making call with parameters:', { To: toNumber, From: fromNumber });
+        // Make the call using Twilio Device with custom parameters
+        console.log('Making call with parameters:', {
+          To: currentToNumber,
+          From: currentFromNumber,
+          Mode: currentMode
+        });
 
         currentConnection = device.connect({
-          To: toNumber,             // The Twilio number to call
-          From: fromNumber,         // Your personal number  
-          TwilioNumber: toNumber,   // Custom: Twilio number for backend
-          CallerNumber: fromNumber, // Custom: Your personal number for backend
-          DestinationNumber: toNumber // Custom: Backup Twilio number
+          To: currentToNumber,              // The Twilio number to call
+          From: currentFromNumber,          // Your personal number  
+          TwilioNumber: currentToNumber,    // Custom: Twilio number for backend
+          CallerNumber: currentFromNumber,  // Custom: Your personal number for backend
+          DestinationNumber: currentToNumber // Custom: Backup Twilio number
         });
 
       } catch (error) {
@@ -612,32 +751,36 @@
     // Initialize on page load
     document.addEventListener("DOMContentLoaded", () => {
       // Load saved values
-      const savedAccountSid = localStorage.getItem("twilioAccountSid");
       const savedToNumber = localStorage.getItem("twilioToNumber");
       const savedFromNumber = localStorage.getItem("twilioFromNumber");
 
-      if (savedAccountSid) {
-        accountSidInput.value = savedAccountSid;
-      }
+      // Set default values for both tabs
+      const defaultToNumber = savedToNumber || "+13136311821";
+      const defaultFromNumber = savedFromNumber || "+923164203806";
 
-      if (savedToNumber) {
-        toNumberInput.value = savedToNumber;
-      } else {
-        toNumberInput.value = "+13136311821";
-      }
+      // Server tab inputs
+      toNumberInputServer.value = defaultToNumber;
+      fromNumberInputServer.value = defaultFromNumber;
 
-      if (savedFromNumber) {
-        fromNumberInput.value = savedFromNumber;
-      } else {
-        fromNumberInput.value = "+923164203806";
-      }
+      // Manual tab inputs
+      toNumberInputManual.value = defaultToNumber;
+      fromNumberInputManual.value = defaultFromNumber;
 
       setCallStatus("uninitialized");
 
-      // Event listeners
-      initializeButton.addEventListener("click", initializeDevice);
+      // Tab event listeners
+      tabServer.addEventListener("click", () => switchTab('server'));
+      tabManual.addEventListener("click", () => switchTab('manual'));
+
+      // Initialize button event listeners
+      initializeButtonServer.addEventListener("click", initializeDeviceServer);
+      initializeButtonManual.addEventListener("click", initializeDeviceManual);
+
+      // Call control event listeners
       callButton.addEventListener("click", makeCall);
       hangupButton.addEventListener("click", hangupCall);
+
+      console.log('🎉 App initialized with tabbed interface');
     });
   </script>
 </body>

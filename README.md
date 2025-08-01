@@ -1,18 +1,18 @@
 # Standalone Twilio WebRTC Call App
 
-A completely standalone application for making WebRTC calls through Twilio. **No .env files or server configuration needed!** Users enter their Twilio credentials directly in the web interface.
+A simple, standalone application for making WebRTC calls through Twilio without complex webhook configurations.
 
 ## Features
 
-- ✅ **No server configuration** - Enter credentials in web UI
-- ✅ Direct WebRTC calling to any phone number  
-- ✅ Works with existing Twilio TwiML Apps
+- ✅ **Dual Mode Support**: Use server-generated tokens OR bring your own
+- ✅ **Tabbed Interface**: Easy switching between server and manual modes
+- ✅ Direct WebRTC calling to any phone number
+- ✅ No complex webhook setup required
 - ✅ Real-time call status updates
 - ✅ Connection quality indicators
-- ✅ Clean, modern UI
-- ✅ Credentials saved locally (except Auth Token for security)
+- ✅ Clean, modern UI with intuitive tabs
 
-## Super Quick Setup
+## Quick Setup
 
 ### 1. Install Dependencies
 
@@ -20,7 +20,31 @@ A completely standalone application for making WebRTC calls through Twilio. **No
 npm install
 ```
 
-### 2. Start the Application
+### 2. Configure Twilio Credentials
+
+1. Copy the configuration template:
+   ```bash
+   cp config-template.txt .env
+   ```
+
+2. Edit `.env` file with your Twilio credentials:
+   ```env
+   TWILIO_ACCOUNT_SID=your_account_sid_here
+   TWILIO_AUTH_TOKEN=your_auth_token_here
+   TWILIO_API_KEY=your_api_key_here  # Optional but recommended
+   TWILIO_API_SECRET=your_api_secret_here  # Optional but recommended
+   PORT=3000
+   ```
+
+### 3. Get Your Twilio Credentials
+
+From your [Twilio Console](https://console.twilio.com):
+
+- **Account SID**: Found on your dashboard
+- **Auth Token**: Found on your dashboard (click to reveal)
+- **API Key/Secret** (recommended): Go to Settings > API Keys > Create New API Key
+
+### 4. Start the Application
 
 ```bash
 npm start
@@ -31,72 +55,62 @@ Or for development with auto-restart:
 npm run dev
 ```
 
-### 3. Open in Browser
+### 5. Open in Browser
 
 Navigate to: `http://localhost:3000`
 
-### 4. Enter Your Twilio Credentials
-
-1. **Get credentials** from [Twilio Console](https://console.twilio.com):
-   - **Account SID**: Found on your dashboard
-   - **Auth Token**: Found on your dashboard (click to reveal)
-
-2. **Enter in web interface**:
-   - Paste Account SID and Auth Token
-   - Set your Twilio phone number
-   - Set your personal number
-   - Click "Initialize Device"
-   - Click "Call" to connect!
-
 ## How to Use
 
-1. **Enter Twilio Credentials**: 
-   - Get Account SID and Auth Token from [Twilio Console](https://console.twilio.com)
-   - Enter them in the web interface
+The app provides two modes of operation:
 
-2. **Set Phone Numbers**: 
-   - "Phone Number to Call": Your Twilio number (e.g., +13136311821)
-   - "Your Personal Number": Your actual phone number (e.g., +923164203806)
+### **Tab 1: Use Our Server** (Recommended)
+1. **Configure .env**: Add your Twilio credentials to the `.env` file
+2. **Set Phone Numbers**: Enter your Twilio number and personal number
+3. **Initialize**: Click "Get Token & Initialize" 
+4. **Make a Call**: Click "Call" to connect
 
-3. **Initialize Device**: Click "Initialize Device" to set up the WebRTC connection
+### **Tab 2: Manual Token** (Advanced)
+1. **Generate Token**: Create your own Twilio access token
+2. **Enter Token**: Paste your access token in the token field
+3. **Set Phone Numbers**: Enter your Twilio number and personal number  
+4. **Initialize**: Click "Initialize with Token"
+5. **Make a Call**: Click "Call" to connect
 
-4. **Make a Call**: Click "Call" to connect to your Twilio number
-
-5. **End Call**: Click "Hang Up" to end the call
+### **Common Steps**
+- **End Call**: Click "Hang Up" to end any active call
+- **Switch Modes**: Click the tabs to switch between server and manual modes
 
 ## Troubleshooting
 
 ### "Failed to get access token"
-- Check that you entered correct Twilio Account SID and Auth Token
-- Verify credentials from [Twilio Console](https://console.twilio.com)
+- Check your `.env` file has correct Twilio credentials
+- Ensure your server is running on the correct port
 - Check browser console for detailed error messages
 
 ### "Device not ready"
 - Wait for "Device Ready" status before calling
 - Check your internet connection
-- Verify Twilio credentials are valid and have sufficient balance
+- Verify Twilio credentials are valid
 
 ### "Call failed"
 - Ensure phone numbers are in E.164 format (+1234567890)
 - Check that your Twilio account has sufficient balance
-- Verify your Twilio number is active and configured
+- Verify the "From" number is a valid Twilio phone number you own
 
 ## Architecture
 
-This app uses a completely standalone architecture:
+This app uses a simplified architecture:
 
-1. **Frontend** (`public/index.html`): Handles UI, credentials, and WebRTC calling
-2. **Backend** (`server.js`): Generates access tokens using user-provided credentials
-3. **No Configuration Files**: Everything is entered through the web interface
-4. **No Environment Setup**: No .env files or server configuration needed
+1. **Frontend** (`index.html`): Handles UI and WebRTC calling
+2. **Backend** (`server.js`): Generates access tokens and manages API calls
+3. **No Webhooks**: Eliminates complex TwiML application configuration
 
 ## Security Notes
 
-- ✅ Auth Token is never saved to localStorage for security
-- ✅ Account SID is saved locally for convenience (non-sensitive)
-- ✅ All credentials are sent securely to backend for token generation
-- ✅ No credentials are stored on the server
-- 🔒 For production: Add HTTPS and consider rate limiting
+- Never expose your Twilio Auth Token in frontend code
+- Use API Keys instead of Auth Token for production
+- Consider implementing rate limiting for the token endpoint
+- Add proper authentication for production use
 
 ## API Endpoints
 
@@ -108,16 +122,12 @@ This app uses a completely standalone architecture:
 
 ```
 ├── server.js              # Express backend server
-├── package.json           # Node.js dependencies  
-├── public/
-│   └── index.html        # Frontend application
+├── package.json           # Node.js dependencies
+├── config-template.txt    # Environment configuration template
+├── index.html             # Frontend application
 └── README.md             # This file
 ```
 
 ---
 
-**Need help?** 
-- Check the browser console for detailed error messages
-- Verify your Twilio credentials at [Twilio Console](https://console.twilio.com)
-- Make sure your Twilio account has sufficient balance
-- Ensure your Twilio number is active and properly configured
+**Need help?** Check the browser console for detailed error messages, or review your Twilio Console for account status and phone number configurations.

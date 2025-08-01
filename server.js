@@ -9,40 +9,62 @@ const port = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public')); // Serve static files from public directory
+app.use(express.static('.')); // Serve static files from root directory
 
-// Twilio configuration (now handled per-request from frontend)
-console.log('🚀 Twilio WebRTC Server - Ready to accept user credentials from frontend');
+// Twilio configuration
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const apiKey = process.env.TWILIO_API_KEY;
+const apiSecret = process.env.TWILIO_API_SECRET;
+
+// Log configuration status (without exposing sensitive data)
+console.log('Twilio Configuration Status:');
+console.log('- Account SID:', accountSid ? `${accountSid.substring(0, 8)}...` : 'MISSING');
+console.log('- Auth Token:', authToken ? 'SET' : 'MISSING');
+console.log('- API Key:', apiKey ? `${apiKey.substring(0, 8)}...` : 'Using Auth Token');
+console.log('- API Secret:', apiSecret ? 'SET' : 'Using Auth Token');
+
+// For outbound calls, we don't need a TwiML app - we can use the API directly
+// Only initialize client if credentials are available
+let client = null;
+if (accountSid && authToken) {
+  try {
+    client = twilio(accountSid, authToken);
+    console.log('✅ Twilio client initialized successfully');
+  } catch (error) {
+    console.log('⚠️ Twilio client initialization failed:', error.message);
+  }
+} else {
+  console.log('⚠️ Twilio client not initialized - missing credentials');
+}
 
 // Generate access token for WebRTC client
 app.post('/token', (req, res) => {
   console.log('Token request received');
 
+  // Check if credentials are available
+  if (!accountSid || !authToken) {
+    console.error('Missing Twilio credentials');
+    return res.status(500).json({
+      error: 'Server configuration error: Missing Twilio credentials',
+      details: 'Please check your .env file'
+    });
+  }
+
   try {
-    const { identity, accountSid, authToken } = req.body;
-
-    // Validate required fields
-    if (!accountSid || !authToken) {
-      console.error('Missing Twilio credentials in request');
-      return res.status(400).json({
-        error: 'Missing credentials',
-        details: 'Please provide accountSid and authToken'
-      });
-    }
-
+    const { identity } = req.body;
     const clientIdentity = identity || 'web-client-' + Date.now();
 
     console.log('Generating token for identity:', clientIdentity);
-    console.log('Using Account SID:', accountSid.substring(0, 8) + '...');
 
-    // Create access token with user-provided credentials
+    // Create access token
     const AccessToken = twilio.jwt.AccessToken;
     const VoiceGrant = AccessToken.VoiceGrant;
 
     const accessToken = new AccessToken(
       accountSid,
-      accountSid,  // Use accountSid as API key for simplicity
-      authToken,   // Use authToken as API secret
+      apiKey || accountSid,
+      apiSecret || authToken,
       { identity: clientIdentity }
     );
 
@@ -70,20 +92,21 @@ app.post('/token', (req, res) => {
   }
 });
 
-// Make outbound call endpoint (optional - for future use)
+// Make outbound call endpoint
 app.post('/make-call', async (req, res) => {
   try {
-    const { to, from, accountSid, authToken } = req.body;
+    const { to, from } = req.body;
 
-    if (!to || !from || !accountSid || !authToken) {
-      return res.status(400).json({
-        error: 'Missing required fields',
-        details: 'Need: to, from, accountSid, authToken'
-      });
+    if (!to || !from) {
+      return res.status(400).json({ error: 'Both "to" and "from" numbers are required' });
     }
 
-    // Create Twilio client with user credentials
-    const client = twilio(accountSid, authToken);
+    if (!client) {
+      return res.status(500).json({
+        error: 'Twilio client not available',
+        message: 'Please check your .env configuration'
+      });
+    }
 
     // Make call using Twilio API
     const call = await client.calls.create({
